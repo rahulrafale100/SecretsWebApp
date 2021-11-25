@@ -28,7 +28,8 @@ mongoose.connect("mongodb://localhost:27017/SecretDB",{useNewURLParser:true});
 const userSchema=new mongoose.Schema({
     username:String,
     password:String,
-    googleId:String
+    googleId:String,
+    secret:String
 });
  
 userSchema.plugin(passportLocalMongoose);
@@ -80,16 +81,44 @@ app.get("/register",function(req,res){
     res.render("register");
 });
 app.get("/secrets",function(req,res){
+    User.find({"secret":{$ne:null}},function(err,founduser){
+        if(err){
+            console.log(err);
+        }
+        else{
+            if(founduser){
+                res.render("secrets",{userwithsecret:founduser});
+            }
+        }
+    });
+});
+app.get("/logout",function(req,res){
+    req.logout();
+    res.redirect("/");
+});
+app.get("/submit",function(req,res){
     if(req.isAuthenticated()){
-        res.render("secrets");
+        res.render("submit");
     }
     else{
         res.redirect("/login");
     }
 });
-app.get("/logout",function(req,res){
-    req.logout();
-    res.redirect("/");
+app.post("/submit",function(req,res){
+    const submittedSecret=req.body.secret;
+    User.findById(req.user.id,function(err,founduser){
+        if(err){
+            console.log(err);
+        }
+        else{
+            if(founduser){
+                founduser.secret=submittedSecret;
+                founduser.save(function(){
+                    res.redirect("/secrets");
+                });
+            }
+        }
+    });
 });
 
 app.post("/register",function(req,res){
